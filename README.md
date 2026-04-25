@@ -8,7 +8,7 @@ Iconify is a pro-level image-to-icon tool with both a native GUI and command-lin
 - Generates all standard icon sizes by default: `16, 24, 32, 48, 64, 128, 256`
 - Preserves transparency and uses high-quality Lanczos resampling
 - Optional square, rounded, circle, and squircle masks
-- Native GUI when launched without command-line arguments
+- Native GUI with live scaling preview, hex background entry, and color picker
 - CLI-first workflow for scripts and build systems
 - Installer recipes for Windows and Ubuntu that put `iconify` on the system path
 
@@ -97,4 +97,3 @@ The Ubuntu build script creates a `.deb` package that installs `/usr/bin/iconify
 ## License
 
 MIT
-

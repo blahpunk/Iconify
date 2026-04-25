@@ -1,77 +1,103 @@
 from __future__ import annotations
 
+import re
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import colorchooser, filedialog, messagebox, ttk
 
-from .converter import DEFAULT_SIZES, IconifyOptions, convert_image, normalize_sizes
+from PIL import Image, ImageDraw, ImageTk
+
+from .converter import IconifyOptions, convert_image, render_icon_preview
+
+HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 class IconifyApp(ttk.Frame):
     def __init__(self, root: tk.Tk) -> None:
-        super().__init__(root, padding=20)
+        super().__init__(root, padding=18)
         self.root = root
         self.input_path = tk.StringVar()
         self.output_path = tk.StringVar()
         self.shape = tk.StringVar(value="square")
         self.radius = tk.IntVar(value=18)
         self.padding = tk.IntVar(value=0)
-        self.background = tk.StringVar(value="transparent")
-        self.sizes = tk.StringVar(value=",".join(str(size) for size in DEFAULT_SIZES))
+        self.background = tk.StringVar(value="#ffffff")
         self.status = tk.StringVar(value="Choose an image to begin.")
+        self._preview_job: str | None = None
+        self._preview_image: ImageTk.PhotoImage | None = None
+        self._last_preview_error = ""
         self._build()
+        self._wire_preview_updates()
 
     def _build(self) -> None:
         self.root.title("Iconify")
-        self.root.minsize(620, 430)
+        self.root.minsize(820, 520)
         self.grid(sticky="nsew")
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
+        self.columnconfigure(0, minsize=340)
         self.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
 
         title = ttk.Label(self, text="Iconify", font=("Segoe UI", 22, "bold"))
-        title.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 18))
+        title.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 16))
 
-        ttk.Label(self, text="Source image").grid(row=1, column=0, sticky="w")
-        ttk.Entry(self, textvariable=self.input_path).grid(row=1, column=1, sticky="ew", padx=10)
-        ttk.Button(self, text="Browse", command=self._choose_input).grid(row=1, column=2, sticky="ew")
+        controls = ttk.Frame(self)
+        controls.grid(row=1, column=0, sticky="nsew", padx=(0, 18))
+        controls.columnconfigure(1, weight=1)
 
-        ttk.Label(self, text="Output icon").grid(row=2, column=0, sticky="w", pady=(12, 0))
-        ttk.Entry(self, textvariable=self.output_path).grid(row=2, column=1, sticky="ew", padx=10, pady=(12, 0))
-        ttk.Button(self, text="Save As", command=self._choose_output).grid(row=2, column=2, sticky="ew", pady=(12, 0))
+        ttk.Label(controls, text="Source image").grid(row=0, column=0, sticky="w")
+        ttk.Entry(controls, textvariable=self.input_path).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        ttk.Button(controls, text="Browse", command=self._choose_input).grid(row=1, column=2, sticky="ew", padx=(8, 0), pady=(4, 0))
 
-        ttk.Label(self, text="Shape").grid(row=3, column=0, sticky="w", pady=(18, 0))
-        shape_frame = ttk.Frame(self)
-        shape_frame.grid(row=3, column=1, columnspan=2, sticky="w", pady=(18, 0))
+        ttk.Label(controls, text="Output icon").grid(row=2, column=0, sticky="w", pady=(16, 0))
+        ttk.Entry(controls, textvariable=self.output_path).grid(row=3, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        ttk.Button(controls, text="Save As", command=self._choose_output).grid(row=3, column=2, sticky="ew", padx=(8, 0), pady=(4, 0))
+
+        ttk.Label(controls, text="Shape").grid(row=4, column=0, sticky="w", pady=(18, 0))
+        shape_frame = ttk.Frame(controls)
+        shape_frame.grid(row=5, column=0, columnspan=3, sticky="w", pady=(6, 0))
         for value in ("square", "rounded", "circle", "squircle"):
-            ttk.Radiobutton(shape_frame, text=value.title(), value=value, variable=self.shape).pack(side="left", padx=(0, 14))
+            ttk.Radiobutton(shape_frame, text=value.title(), value=value, variable=self.shape).pack(side="left", padx=(0, 12))
 
-        ttk.Label(self, text="Corner radius").grid(row=4, column=0, sticky="w", pady=(18, 0))
-        ttk.Scale(self, variable=self.radius, from_=0, to=50, orient="horizontal").grid(
-            row=4, column=1, sticky="ew", padx=10, pady=(18, 0)
+        ttk.Label(controls, text="Corner radius").grid(row=6, column=0, sticky="w", pady=(18, 0))
+        ttk.Scale(controls, variable=self.radius, from_=0, to=50, orient="horizontal").grid(
+            row=7, column=0, columnspan=2, sticky="ew", pady=(6, 0)
         )
-        ttk.Label(self, textvariable=self.radius).grid(row=4, column=2, sticky="w", pady=(18, 0))
+        ttk.Label(controls, textvariable=self.radius, width=4).grid(row=7, column=2, sticky="e", pady=(6, 0))
 
-        ttk.Label(self, text="Padding").grid(row=5, column=0, sticky="w", pady=(12, 0))
-        ttk.Scale(self, variable=self.padding, from_=0, to=45, orient="horizontal").grid(
-            row=5, column=1, sticky="ew", padx=10, pady=(12, 0)
+        ttk.Label(controls, text="Padding").grid(row=8, column=0, sticky="w", pady=(16, 0))
+        ttk.Scale(controls, variable=self.padding, from_=0, to=45, orient="horizontal").grid(
+            row=9, column=0, columnspan=2, sticky="ew", pady=(6, 0)
         )
-        ttk.Label(self, textvariable=self.padding).grid(row=5, column=2, sticky="w", pady=(12, 0))
+        ttk.Label(controls, textvariable=self.padding, width=4).grid(row=9, column=2, sticky="e", pady=(6, 0))
 
-        ttk.Label(self, text="Sizes").grid(row=6, column=0, sticky="w", pady=(12, 0))
-        ttk.Entry(self, textvariable=self.sizes).grid(row=6, column=1, columnspan=2, sticky="ew", padx=10, pady=(12, 0))
+        ttk.Label(controls, text="Background").grid(row=10, column=0, sticky="w", pady=(16, 0))
+        ttk.Entry(controls, textvariable=self.background).grid(row=11, column=0, columnspan=2, sticky="ew", pady=(4, 0))
+        ttk.Button(controls, text="Color", command=self._choose_color).grid(row=11, column=2, sticky="ew", padx=(8, 0), pady=(4, 0))
 
-        ttk.Label(self, text="Background").grid(row=7, column=0, sticky="w", pady=(12, 0))
-        ttk.Entry(self, textvariable=self.background).grid(row=7, column=1, columnspan=2, sticky="ew", padx=10, pady=(12, 0))
-
-        button_row = ttk.Frame(self)
-        button_row.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(24, 0))
+        button_row = ttk.Frame(controls)
+        button_row.grid(row=12, column=0, columnspan=3, sticky="ew", pady=(26, 0))
         button_row.columnconfigure(0, weight=1)
         ttk.Button(button_row, text="Convert", command=self._convert).grid(row=0, column=1, sticky="e")
 
-        status = ttk.Label(self, textvariable=self.status, foreground="#345")
-        status.grid(row=9, column=0, columnspan=3, sticky="w", pady=(18, 0))
+        ttk.Label(controls, textvariable=self.status, foreground="#345", wraplength=320).grid(
+            row=13, column=0, columnspan=3, sticky="w", pady=(18, 0)
+        )
+
+        preview_frame = ttk.Frame(self)
+        preview_frame.grid(row=1, column=1, sticky="nsew")
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+        self.preview = tk.Canvas(preview_frame, highlightthickness=1, highlightbackground="#9aa6b2", bg="#f5f7fa")
+        self.preview.grid(row=0, column=0, sticky="nsew")
+        self.preview.bind("<Configure>", lambda _event: self._schedule_preview())
+        self._draw_empty_preview()
+
+    def _wire_preview_updates(self) -> None:
+        for variable in (self.input_path, self.shape, self.radius, self.padding, self.background):
+            variable.trace_add("write", lambda *_args: self._schedule_preview())
 
     def _choose_input(self) -> None:
         path = filedialog.askopenfilename(
@@ -99,9 +125,17 @@ class IconifyApp(ttk.Frame):
         if path:
             self.output_path.set(path)
 
+    def _choose_color(self) -> None:
+        current = self._normalized_background()
+        _rgb, hex_value = colorchooser.askcolor(color=current, title="Choose background color")
+        if hex_value:
+            self.background.set(hex_value.lower())
+
     def _convert(self) -> None:
         if not self.input_path.get():
             messagebox.showwarning("Iconify", "Choose a source image first.")
+            return
+        if not self._validate_background():
             return
 
         self.status.set("Converting...")
@@ -116,8 +150,7 @@ class IconifyApp(ttk.Frame):
                     output=Path(self.output_path.get()) if self.output_path.get() else None,
                     shape=self.shape.get(),
                     radius=int(self.radius.get()),
-                    sizes=normalize_sizes(self.sizes.get()),
-                    background=self.background.get(),
+                    background=self._normalized_background(),
                     padding=int(self.padding.get()),
                 ),
             )
@@ -126,6 +159,82 @@ class IconifyApp(ttk.Frame):
             self.root.after(0, lambda: self._fail(message))
             return
         self.root.after(0, lambda: self._succeed(output))
+
+    def _schedule_preview(self) -> None:
+        if self._preview_job:
+            self.root.after_cancel(self._preview_job)
+        self._preview_job = self.root.after(90, self._update_preview)
+
+    def _update_preview(self) -> None:
+        self._preview_job = None
+        if not self.input_path.get():
+            self._draw_empty_preview()
+            return
+        if not HEX_COLOR.fullmatch(self.background.get().strip()):
+            self._draw_message("Enter a hex color like #ffffff")
+            return
+
+        canvas_size = max(64, min(self.preview.winfo_width(), self.preview.winfo_height()) - 42)
+        try:
+            image = render_icon_preview(
+                self.input_path.get(),
+                canvas_size,
+                shape=self.shape.get(),
+                radius=int(self.radius.get()),
+                background=self._normalized_background(),
+                padding=int(self.padding.get()),
+            )
+        except Exception as exc:
+            message = str(exc)
+            if message != self._last_preview_error:
+                self.status.set(message)
+                self._last_preview_error = message
+            self._draw_message("Preview unavailable")
+            return
+
+        self._last_preview_error = ""
+        preview = self._checkerboard(canvas_size)
+        preview.alpha_composite(image)
+        self._preview_image = ImageTk.PhotoImage(preview)
+        self.preview.delete("all")
+        x = self.preview.winfo_width() // 2
+        y = self.preview.winfo_height() // 2
+        self.preview.create_image(x, y, image=self._preview_image)
+        self.status.set("Preview ready.")
+
+    def _draw_empty_preview(self) -> None:
+        self._draw_message("Preview")
+
+    def _draw_message(self, message: str) -> None:
+        self.preview.delete("all")
+        self.preview.create_text(
+            max(1, self.preview.winfo_width() // 2),
+            max(1, self.preview.winfo_height() // 2),
+            text=message,
+            fill="#536273",
+            font=("Segoe UI", 14),
+        )
+
+    def _validate_background(self) -> bool:
+        if HEX_COLOR.fullmatch(self.background.get().strip()):
+            return True
+        messagebox.showerror("Iconify", "Background must be a hex color like #ffffff.")
+        return False
+
+    def _normalized_background(self) -> str:
+        value = self.background.get().strip()
+        return value if value else "#ffffff"
+
+    @staticmethod
+    def _checkerboard(size: int) -> Image.Image:
+        image = Image.new("RGBA", (size, size), "#ffffff")
+        draw = ImageDraw.Draw(image)
+        block = max(8, size // 24)
+        for y in range(0, size, block):
+            for x in range(0, size, block):
+                if (x // block + y // block) % 2:
+                    draw.rectangle((x, y, x + block - 1, y + block - 1), fill="#edf1f5")
+        return image
 
     def _succeed(self, output: Path) -> None:
         self.output_path.set(str(output))

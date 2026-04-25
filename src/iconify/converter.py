@@ -50,6 +50,22 @@ def convert_image(input_path: str | Path, options: IconifyOptions | None = None)
     return output
 
 
+def render_icon_preview(
+    input_path: str | Path,
+    size: int,
+    shape: str = "square",
+    radius: int = 18,
+    background: str = "transparent",
+    padding: int = 0,
+) -> Image.Image:
+    source = Path(input_path).expanduser().resolve()
+    if not source.exists():
+        raise FileNotFoundError(f"Input image does not exist: {source}")
+    with Image.open(source) as opened:
+        base = ImageOps.exif_transpose(opened).convert("RGBA")
+    return _render_icon(base, size, shape.lower(), radius, background, padding)
+
+
 def normalize_sizes(sizes: Iterable[int] | str) -> tuple[int, ...]:
     if isinstance(sizes, str):
         raw_values = [part.strip() for part in sizes.split(",") if part.strip()]
@@ -116,4 +132,3 @@ def _shape_mask(size: int, shape: str, radius_percent: int) -> Image.Image:
         raise ValueError(f"Unsupported shape: {shape}")
 
     return mask
-
