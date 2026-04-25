@@ -4,6 +4,7 @@ from PyInstaller.utils.hooks import collect_submodules
 from pathlib import Path
 
 project_root = Path(SPECPATH).parents[1]
+icon_path = project_root / "icon.ico"
 
 hiddenimports = collect_submodules("PIL")
 
@@ -11,7 +12,7 @@ a = Analysis(
     ["iconify_launcher.py"],
     pathex=[str(project_root / "src")],
     binaries=[],
-    datas=[],
+    datas=[(str(icon_path), ".")],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -32,6 +33,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,
+    icon=str(icon_path),
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

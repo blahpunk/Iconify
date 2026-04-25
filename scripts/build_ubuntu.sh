@@ -20,6 +20,7 @@ rm -rf "$PKGROOT"
 mkdir -p "$PKGROOT/DEBIAN" "$PKGROOT/opt/iconify" "$PKGROOT/usr/share/applications" "$PKGROOT/usr/share/doc/iconify"
 
 cp -R "dist/Iconify/"* "$PKGROOT/opt/iconify/"
+cp icon.ico "$PKGROOT/opt/iconify/icon.ico"
 chmod 755 "$PKGROOT/opt/iconify/iconify"
 cp installer/linux/iconify.desktop "$PKGROOT/usr/share/applications/iconify.desktop"
 cp README.md LICENSE "$PKGROOT/usr/share/doc/iconify/"

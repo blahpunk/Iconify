@@ -1,5 +1,5 @@
 #define AppName "Iconify"
-#define AppVersion "0.2.0"
+#define AppVersion "0.2.1"
 #define AppPublisher "Iconify contributors"
 #define AppExeName "iconify.exe"
 
@@ -12,6 +12,8 @@ DefaultDirName={autopf}\Iconify
 DefaultGroupName={#AppName}
 OutputDir=..\..\dist\installer
 OutputBaseFilename=IconifySetup-{#AppVersion}
+SetupIconFile=..\..\icon.ico
+UninstallDisplayIcon={app}\iconify.exe
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=admin

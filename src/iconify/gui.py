@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -30,6 +31,7 @@ class IconifyApp(ttk.Frame):
         self._preview_image: ImageTk.PhotoImage | None = None
         self._last_preview_error = ""
         self._build()
+        self._set_window_icon()
         self._wire_preview_updates()
         self.root.after(300, self._maybe_prompt_cli_install)
 
@@ -107,6 +109,22 @@ class IconifyApp(ttk.Frame):
     def _wire_preview_updates(self) -> None:
         for variable in (self.input_path, self.shape, self.radius, self.padding, self.background):
             variable.trace_add("write", lambda *_args: self._schedule_preview())
+
+    def _set_window_icon(self) -> None:
+        icon = _app_icon_path()
+        if not icon.exists():
+            return
+        try:
+            self.root.iconbitmap(default=str(icon))
+            return
+        except tk.TclError:
+            pass
+        try:
+            image = Image.open(icon)
+            self._titlebar_icon = ImageTk.PhotoImage(image)
+            self.root.iconphoto(True, self._titlebar_icon)
+        except Exception:
+            pass
 
     def _choose_input(self) -> None:
         path = filedialog.askopenfilename(
@@ -338,3 +356,12 @@ def run() -> None:
         pass
     IconifyApp(root)
     root.mainloop()
+
+
+def _app_icon_path() -> Path:
+    if getattr(sys, "frozen", False):
+        bundle_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+        candidates = [bundle_dir / "icon.ico", Path(sys.executable).resolve().parent / "icon.ico"]
+    else:
+        candidates = [Path(__file__).resolve().parents[2] / "icon.ico"]
+    return next((candidate for candidate in candidates if candidate.exists()), candidates[0])

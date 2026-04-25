@@ -3,4 +3,4 @@
 from .converter import IconifyOptions, convert_image
 
 __all__ = ["IconifyOptions", "convert_image"]
-__version__ = "0.2.0"
+__version__ = "0.2.1"

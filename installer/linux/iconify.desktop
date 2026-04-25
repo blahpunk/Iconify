@@ -3,6 +3,7 @@ Type=Application
 Name=Iconify
 Comment=Convert images to multi-size icons
 Exec=/opt/iconify/iconify %f
+Icon=/opt/iconify/icon.ico
 Terminal=false
 Categories=Graphics;Utility;
 MimeType=image/png;image/jpeg;image/webp;image/bmp;image/tiff;
