@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iconify-tool"
-version = "0.2.1"
+version = "0.2.2"
 description = "A pro-level image-to-icon tool with a GUI and command-line interface."
 readme = "README.md"
 requires-python = ">=3.10"

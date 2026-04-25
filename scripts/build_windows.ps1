@@ -13,6 +13,7 @@ if (-not (Test-Path ".venv")) {
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller build failed with exit code $LASTEXITCODE"
 }
+Copy-Item -LiteralPath (Join-Path $Root "icon.ico") -Destination (Join-Path $Root "dist\Iconify\icon.ico") -Force
 
 $iscc = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
 if ($iscc) {

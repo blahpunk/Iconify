@@ -361,7 +361,8 @@ def run() -> None:
 def _app_icon_path() -> Path:
     if getattr(sys, "frozen", False):
         bundle_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
-        candidates = [bundle_dir / "icon.ico", Path(sys.executable).resolve().parent / "icon.ico"]
+        exe_dir = Path(sys.executable).resolve().parent
+        candidates = [exe_dir / "icon.ico", bundle_dir / "icon.ico", exe_dir / "_internal" / "icon.ico"]
     else:
         candidates = [Path(__file__).resolve().parents[2] / "icon.ico"]
     return next((candidate for candidate in candidates if candidate.exists()), candidates[0])

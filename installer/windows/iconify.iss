@@ -1,5 +1,5 @@
 #define AppName "Iconify"
-#define AppVersion "0.2.1"
+#define AppVersion "0.2.2"
 #define AppPublisher "Iconify contributors"
 #define AppExeName "iconify.exe"
 
@@ -13,7 +13,7 @@ DefaultGroupName={#AppName}
 OutputDir=..\..\dist\installer
 OutputBaseFilename=IconifySetup-{#AppVersion}
 SetupIconFile=..\..\icon.ico
-UninstallDisplayIcon={app}\iconify.exe
+UninstallDisplayIcon={app}\icon.ico
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=admin
@@ -23,12 +23,13 @@ ArchitecturesInstallIn64BitMode=x64
 Source: "..\..\dist\Iconify\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{group}\Iconify"; Filename: "{app}\{#AppExeName}"
-Name: "{commondesktop}\Iconify"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\Iconify"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\icon.ico"
+Name: "{commondesktop}\Iconify"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
 
 [Registry]
 Root: HKCR; Subkey: "*\shell\Iconify"; ValueType: string; ValueName: ""; ValueData: "Convert with Iconify"
+Root: HKCR; Subkey: "*\shell\Iconify"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icon.ico"
 Root: HKCR; Subkey: "*\shell\Iconify\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExeName}"" ""%1"""
