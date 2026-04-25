@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Iconify
+Comment=Convert images to multi-size icons
+Exec=iconify %f
+Terminal=false
+Categories=Graphics;Utility;
+MimeType=image/png;image/jpeg;image/webp;image/bmp;image/tiff;
+
