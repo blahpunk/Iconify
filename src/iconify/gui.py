@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, ImageTk
 from .converter import IconifyOptions, convert_image, render_icon_preview
 
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+TRANSPARENT = "transparent"
 
 
 class IconifyApp(ttk.Frame):
@@ -22,7 +23,7 @@ class IconifyApp(ttk.Frame):
         self.shape = tk.StringVar(value="square")
         self.radius = tk.IntVar(value=18)
         self.padding = tk.IntVar(value=0)
-        self.background = tk.StringVar(value="#ffffff")
+        self.background = tk.StringVar(value=TRANSPARENT)
         self.status = tk.StringVar(value="Choose an image to begin.")
         self._preview_job: str | None = None
         self._preview_image: ImageTk.PhotoImage | None = None
@@ -127,6 +128,8 @@ class IconifyApp(ttk.Frame):
 
     def _choose_color(self) -> None:
         current = self._normalized_background()
+        if current == TRANSPARENT:
+            current = "#ffffff"
         _rgb, hex_value = colorchooser.askcolor(color=current, title="Choose background color")
         if hex_value:
             self.background.set(hex_value.lower())
@@ -170,8 +173,8 @@ class IconifyApp(ttk.Frame):
         if not self.input_path.get():
             self._draw_empty_preview()
             return
-        if not HEX_COLOR.fullmatch(self.background.get().strip()):
-            self._draw_message("Enter a hex color like #ffffff")
+        if not self._valid_background_value():
+            self._draw_message("Enter #ffffff or transparent")
             return
 
         canvas_size = max(64, min(self.preview.winfo_width(), self.preview.winfo_height()) - 42)
@@ -216,14 +219,18 @@ class IconifyApp(ttk.Frame):
         )
 
     def _validate_background(self) -> bool:
-        if HEX_COLOR.fullmatch(self.background.get().strip()):
+        if self._valid_background_value():
             return True
-        messagebox.showerror("Iconify", "Background must be a hex color like #ffffff.")
+        messagebox.showerror("Iconify", "Background must be a hex color like #ffffff or transparent.")
         return False
 
     def _normalized_background(self) -> str:
-        value = self.background.get().strip()
-        return value if value else "#ffffff"
+        value = self.background.get().strip().lower()
+        return value if value else TRANSPARENT
+
+    def _valid_background_value(self) -> bool:
+        value = self.background.get().strip().lower()
+        return value in {"", TRANSPARENT} or HEX_COLOR.fullmatch(value) is not None
 
     @staticmethod
     def _checkerboard(size: int) -> Image.Image:
