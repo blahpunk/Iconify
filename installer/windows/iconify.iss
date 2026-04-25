@@ -1,5 +1,5 @@
 #define AppName "Iconify"
-#define AppVersion "0.1.0"
+#define AppVersion "0.2.0"
 #define AppPublisher "Iconify contributors"
 #define AppExeName "iconify.exe"
 
@@ -28,20 +28,5 @@ Name: "{commondesktop}\Iconify"; Filename: "{app}\{#AppExeName}"; Tasks: desktop
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
 
 [Registry]
-Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath(ExpandConstant('{app}'))
 Root: HKCR; Subkey: "*\shell\Iconify"; ValueType: string; ValueName: ""; ValueData: "Convert with Iconify"
 Root: HKCR; Subkey: "*\shell\Iconify\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExeName}"" ""%1"""
-
-[Code]
-function NeedsAddPath(Path: string): Boolean;
-var
-  CurrentPath: string;
-begin
-  if not RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'Path', CurrentPath) then
-  begin
-    Result := True;
-    exit;
-  end;
-  Result := Pos(';' + Lowercase(Path) + ';', ';' + Lowercase(CurrentPath) + ';') = 0;
-end;
-

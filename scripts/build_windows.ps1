@@ -24,3 +24,10 @@ if ($iscc) {
 } else {
     Write-Host "PyInstaller executable written to dist\Iconify. Install Inno Setup to build the .exe installer."
 }
+
+$zipPath = Join-Path $Root "dist\Iconify-windows.zip"
+if (Test-Path $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
+Compress-Archive -Path (Join-Path $Root "dist\Iconify\*") -DestinationPath $zipPath
+Write-Host "Windows zip written to dist\Iconify-windows.zip"

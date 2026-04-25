@@ -8,6 +8,7 @@ from tkinter import colorchooser, filedialog, messagebox, ttk
 
 from PIL import Image, ImageDraw, ImageTk
 
+from . import cli_install
 from .converter import IconifyOptions, convert_image, render_icon_preview
 
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -30,6 +31,7 @@ class IconifyApp(ttk.Frame):
         self._last_preview_error = ""
         self._build()
         self._wire_preview_updates()
+        self.root.after(300, self._maybe_prompt_cli_install)
 
     def _build(self) -> None:
         self.root.title("Iconify")
@@ -78,13 +80,19 @@ class IconifyApp(ttk.Frame):
         ttk.Entry(controls, textvariable=self.background).grid(row=11, column=0, columnspan=2, sticky="ew", pady=(4, 0))
         ttk.Button(controls, text="Color", command=self._choose_color).grid(row=11, column=2, sticky="ew", padx=(8, 0), pady=(4, 0))
 
+        cli_row = ttk.Frame(controls)
+        cli_row.grid(row=12, column=0, columnspan=3, sticky="ew", pady=(24, 0))
+        ttk.Button(cli_row, text="Install CLI", command=self._install_cli).pack(side="left")
+        ttk.Button(cli_row, text="Test CLI", command=self._test_cli).pack(side="left", padx=(8, 0))
+        ttk.Button(cli_row, text="Uninstall CLI", command=self._uninstall_cli).pack(side="left", padx=(8, 0))
+
         button_row = ttk.Frame(controls)
-        button_row.grid(row=12, column=0, columnspan=3, sticky="ew", pady=(26, 0))
+        button_row.grid(row=13, column=0, columnspan=3, sticky="ew", pady=(18, 0))
         button_row.columnconfigure(0, weight=1)
         ttk.Button(button_row, text="Convert", command=self._convert).grid(row=0, column=1, sticky="e")
 
         ttk.Label(controls, textvariable=self.status, foreground="#345", wraplength=320).grid(
-            row=13, column=0, columnspan=3, sticky="w", pady=(18, 0)
+            row=14, column=0, columnspan=3, sticky="w", pady=(18, 0)
         )
 
         preview_frame = ttk.Frame(self)
@@ -133,6 +141,74 @@ class IconifyApp(ttk.Frame):
         _rgb, hex_value = colorchooser.askcolor(color=current, title="Choose background color")
         if hex_value:
             self.background.set(hex_value.lower())
+
+    def _maybe_prompt_cli_install(self) -> None:
+        if cli_install.cli_prompt_suppressed() or cli_install.found_cli():
+            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Install command line access")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+        dialog.grab_set()
+
+        frame = ttk.Frame(dialog, padding=18)
+        frame.grid(sticky="nsew")
+        ttk.Label(
+            frame,
+            text="Install the iconify command for terminal use?",
+            font=("Segoe UI", 11, "bold"),
+        ).grid(row=0, column=0, columnspan=3, sticky="w")
+        ttk.Label(
+            frame,
+            text="This copies the packaged app to a user install location and adds the command to your user PATH.",
+            wraplength=420,
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 14))
+
+        dont_ask = tk.BooleanVar(value=False)
+        ttk.Checkbutton(frame, text="Do not ask again", variable=dont_ask).grid(
+            row=2, column=0, columnspan=3, sticky="w", pady=(0, 16)
+        )
+
+        def close_with_suppression() -> None:
+            if dont_ask.get():
+                cli_install.set_cli_prompt_suppressed(True)
+            dialog.destroy()
+
+        def install_and_close() -> None:
+            if dont_ask.get():
+                cli_install.set_cli_prompt_suppressed(True)
+            dialog.destroy()
+            self._install_cli()
+
+        ttk.Button(frame, text="Install", command=install_and_close).grid(row=3, column=0, sticky="e")
+        ttk.Button(frame, text="Not Now", command=close_with_suppression).grid(row=3, column=1, sticky="e", padx=(8, 0))
+        ttk.Button(frame, text="Never Ask", command=lambda: (cli_install.set_cli_prompt_suppressed(True), dialog.destroy())).grid(
+            row=3, column=2, sticky="e", padx=(8, 0)
+        )
+
+    def _install_cli(self) -> None:
+        ok, message = cli_install.install_cli()
+        self.status.set(message)
+        if ok:
+            messagebox.showinfo("Iconify", message)
+        else:
+            messagebox.showwarning("Iconify", message)
+
+    def _test_cli(self) -> None:
+        ok, message = cli_install.test_cli()
+        self.status.set(message)
+        if ok:
+            messagebox.showinfo("Iconify", message)
+        else:
+            messagebox.showwarning("Iconify", message)
+
+    def _uninstall_cli(self) -> None:
+        ok, message = cli_install.uninstall_cli()
+        self.status.set(message)
+        if ok:
+            messagebox.showinfo("Iconify", message)
+        else:
+            messagebox.showwarning("Iconify", message)
 
     def _convert(self) -> None:
         if not self.input_path.get():

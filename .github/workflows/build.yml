@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -30,7 +31,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: iconify-windows
-          path: dist/**
+          path: |
+            dist/Iconify-windows.zip
+            dist/installer/*.exe
 
   package-ubuntu:
     runs-on: ubuntu-latest
@@ -45,3 +48,17 @@ jobs:
           name: iconify-ubuntu
           path: dist/*.deb
 
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, package-windows, package-ubuntu]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**/*
+          generate_release_notes: true

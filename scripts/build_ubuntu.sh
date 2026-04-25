@@ -17,10 +17,10 @@ PY
 )"
 PKGROOT="dist/deb/iconify_${VERSION}_amd64"
 rm -rf "$PKGROOT"
-mkdir -p "$PKGROOT/DEBIAN" "$PKGROOT/usr/bin" "$PKGROOT/usr/share/applications" "$PKGROOT/usr/share/doc/iconify"
+mkdir -p "$PKGROOT/DEBIAN" "$PKGROOT/opt/iconify" "$PKGROOT/usr/share/applications" "$PKGROOT/usr/share/doc/iconify"
 
-cp "dist/Iconify/iconify" "$PKGROOT/usr/bin/iconify"
-chmod 755 "$PKGROOT/usr/bin/iconify"
+cp -R "dist/Iconify/"* "$PKGROOT/opt/iconify/"
+chmod 755 "$PKGROOT/opt/iconify/iconify"
 cp installer/linux/iconify.desktop "$PKGROOT/usr/share/applications/iconify.desktop"
 cp README.md LICENSE "$PKGROOT/usr/share/doc/iconify/"
 
@@ -36,4 +36,3 @@ CONTROL
 
 dpkg-deb --build "$PKGROOT" "dist/iconify_${VERSION}_amd64.deb"
 echo "Ubuntu package written to dist/iconify_${VERSION}_amd64.deb"
-

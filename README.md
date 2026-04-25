@@ -9,8 +9,9 @@ Iconify is a pro-level image-to-icon tool with both a native GUI and command-lin
 - Preserves transparency and uses high-quality Lanczos resampling
 - Optional square, rounded, circle, and squircle masks
 - Native GUI with live scaling preview, transparent default background, hex entry, and color picker
+- Optional command-line install from the GUI, with test and uninstall controls
 - CLI-first workflow for scripts and build systems
-- Installer recipes for Windows and Ubuntu that put `iconify` on the system path
+- Installer recipes for Windows and Ubuntu, with CLI path install handled inside the app
 
 ## Quick Start
 
@@ -31,6 +32,8 @@ Launch the GUI:
 ```bash
 iconify
 ```
+
+When the GUI starts from a packaged build, it can install the `iconify` command on request. It does not add itself to your terminal path automatically.
 
 ## CLI
 
@@ -69,7 +72,7 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-Run the app:
+Run the app during development:
 
 ```bash
 python -m iconify
